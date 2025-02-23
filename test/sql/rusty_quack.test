@@ -18,3 +18,9 @@ query I
 SELECT * from hello_table('Sam');
 ----
 Rusty Quack Sam 🐥
+
+# Confirm the extension works
+query II
+SELECT hello_scalar();
+----
+1
