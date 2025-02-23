@@ -20,7 +20,7 @@ SELECT * from hello_table('Sam');
 Rusty Quack Sam 🐥
 
 # Confirm the extension works
-query II
+query I
 SELECT hello_scalar();
 ----
 1
