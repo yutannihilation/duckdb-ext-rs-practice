@@ -21,6 +21,7 @@ Rusty Quack Sam 🐥
 
 # Confirm the extension works
 query I
-SELECT hello_scalar();
+SELECT hello_scalar(col1) FROM (VALUES (1), (22)) tbl1(col1);
 ----
-1
+2
+44

@@ -67,28 +67,39 @@ impl VTab for HelloVTab {
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Default)]
-struct HelloScalarState;
-
 struct HelloVScalar;
 
 impl VScalar for HelloVScalar {
-    type State = HelloScalarState;
+    type State = ();
 
     unsafe fn invoke(
-        state: &Self::State,
+        _: &Self::State,
         input: &mut DataChunkHandle,
         output: &mut dyn WritableVector,
     ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let len = input.len();
+        let input_vec = input.flat_vector(0);
+        let input_values = match input_vec.logical_type().id() {
+            LogicalTypeId::Integer => input_vec.as_slice_with_len::<i32>(len),
+            id => {
+                return Err(format!("Unsupported type: {id:?}").into());
+            }
+        };
+
         let mut flat_vec = output.flat_vector();
-        flat_vec.as_mut_slice().fill(1);
+        flat_vec
+            .as_mut_slice_with_len::<i32>(len)
+            .iter_mut()
+            .zip(input_values.iter())
+            .for_each(|(o, i)| {
+                *o = 2 * i;
+            });
         Ok(())
     }
 
     fn signatures() -> Vec<duckdb::vscalar::ScalarFunctionSignature> {
         vec![ScalarFunctionSignature::exact(
-            vec![],
+            vec![LogicalTypeId::Integer.into()],
             LogicalTypeId::Integer.into(),
         )]
     }
