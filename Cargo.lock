@@ -464,6 +464,7 @@ dependencies = [
  "hashlink",
  "libduckdb-sys",
  "memchr",
+ "num",
  "num-integer",
  "rust_decimal",
  "smallvec",

@@ -3,8 +3,10 @@ extern crate duckdb_loadable_macros;
 extern crate libduckdb_sys;
 
 use duckdb::{
+    arrow::datatypes::DataType,
     core::{DataChunkHandle, Inserter, LogicalTypeHandle, LogicalTypeId},
-    vtab::{BindInfo, InitInfo, TableFunctionInfo, VTab},
+    vscalar::{ArrowFunctionSignature, ScalarFunctionSignature, VScalar},
+    vtab::{arrow::WritableVector, BindInfo, InitInfo, TableFunctionInfo, VTab},
     Connection, Result,
 };
 use duckdb_loadable_macros::duckdb_entrypoint_c_api;
@@ -65,11 +67,43 @@ impl VTab for HelloVTab {
     }
 }
 
-const EXTENSION_NAME: &str = env!("CARGO_PKG_NAME");
+#[repr(C)]
+#[derive(Debug, Default)]
+struct HelloScalarState;
+
+struct HelloVScalar;
+
+impl VScalar for HelloVScalar {
+    type State = HelloScalarState;
+
+    unsafe fn invoke(
+        state: &Self::State,
+        input: &mut DataChunkHandle,
+        output: &mut dyn WritableVector,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut flat_vec = output.flat_vector();
+        flat_vec.as_mut_slice().fill(1);
+        Ok(())
+    }
+
+    fn signatures() -> Vec<duckdb::vscalar::ScalarFunctionSignature> {
+        vec![ScalarFunctionSignature::exact(
+            vec![],
+            LogicalTypeId::Integer.into(),
+        )]
+    }
+}
+
+const TABLE_FUNCITON_NAME: &str = "hello_table";
+const SCALAR_FUNCITON_NAME: &str = "hello_scalar";
 
 #[duckdb_entrypoint_c_api]
 pub unsafe fn extension_entrypoint(con: Connection) -> Result<(), Box<dyn Error>> {
-    con.register_table_function::<HelloVTab>(EXTENSION_NAME)
+    con.register_table_function::<HelloVTab>(TABLE_FUNCITON_NAME)
         .expect("Failed to register hello table function");
+
+    con.register_scalar_function::<HelloVScalar>(SCALAR_FUNCITON_NAME)
+        .expect("Failed to register hello scalar function");
+
     Ok(())
 }
