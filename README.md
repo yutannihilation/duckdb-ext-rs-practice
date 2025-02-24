@@ -1,38 +1,16 @@
-# DuckDB Rust extension template
-This is an **experimental** template for Rust based extensions based on the C Extension API of DuckDB. The goal is to 
-turn this eventually into a stable basis for pure-Rust DuckDB extensions that can be submitted to the Community extensions
-repository
-
-Features:
-- No DuckDB build required
-- No C++ or C code required
-- CI/CD chain preconfigured
-- (Coming soon) Works with community extensions
+# A Practice of Implementing A DuckDB Extension By Rust
 
 ## Cloning
 
 Clone the repo with submodules
 
 ```shell
-git clone --recurse-submodules <repo>
+git clone --recurse-submodules https://github.com/yutannihilation/duckdb-ext-rs-practice
 ```
 
-## Dependencies
-In principle, these extensions can be compiled with the Rust toolchain alone. However, this template relies on some additional
-tooling to make life a little easier and to be able to share CI/CD infrastructure with extension templates for other languages:
-
-- Python3
-- Python3-venv
-- [Make](https://www.gnu.org/software/make)
-- Git
-
-Installing these dependencies will vary per platform:
-- For Linux, these come generally pre-installed or are available through the distro-specific package manager.
-- For MacOS, [homebrew](https://formulae.brew.sh/).
-- For Windows, [chocolatey](https://community.chocolatey.org/).
-
 ## Building
-After installing the dependencies, building is a two-step process. Firstly run:
+
+After making sure the dependencies (Python3, venv, make, git) are installed, building is a two-step process. Firstly run:
 ```shell
 make configure
 ```
@@ -49,6 +27,18 @@ to the `build/debug` directory.
 
 To create optimized release binaries, simply run `make release` instead.
 
+### Windows
+
+On Windows, there are several things you need to be careful about:
+
+- It seems this Makefile doesn't work on Powershell. Launch some other shell like Git Bash.
+- If Python3 is installed other name than `python3`, you need to set `PYTHON_BIN` envvar.
+  ```shell
+  export PYTHON_BIN=python
+  make configure
+  make debug
+  ```
+
 ## Testing
 This extension uses the DuckDB Python client for testing. This should be automatically installed in the `make configure` step.
 The tests themselves are written in the SQLLogicTest format, just like most of DuckDB's tests. A sample test can be found in
@@ -61,6 +51,44 @@ make test_debug
 or for the *release* build:
 ```shell
 make test_release
+```
+
+### Running the extension
+To run the extension code, start `duckdb` with `-unsigned` flag. This will allow you to load the local extension file.
+
+```sh
+duckdb -unsigned
+```
+
+After loading the extension by the file path, you can use the functions provided by the extension (in this case, `hello_table()` and `hello_scalar()`).
+
+```sql
+LOAD './build/debug/extension/rusty_quack/rusty_quack.duckdb_extension';
+
+SELECT * FROM hello_table('Jane');
+```
+
+```
+┌─────────────────────┐
+│       column0       │
+│       varchar       │
+├─────────────────────┤
+│ Rusty Quack Jane 🐥 │
+└─────────────────────┘
+```
+
+```sql
+SELECT hello_scalar(col1) FROM (VALUES (1), (22)) tbl1(col1);
+```
+
+```
+┌────────────────────┐
+│ hello_scalar(col1) │
+│       int32        │
+├────────────────────┤
+│                  2 │
+│                 44 │
+└────────────────────┘
 ```
 
 ### Version switching 
